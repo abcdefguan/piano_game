@@ -3,7 +3,12 @@
 import Adafruit_GPIO.MCP230xx as MCP230XX # Import Adafruit MCP23017 Library
 import pygame
 
+#An input class that provides input through physical buttons using the MCP230XX
 class BtnInput:
+	"""
+	[__init__] saves the bindings from keys to pitches and initialises
+	the state of the input
+	"""
 	def __init__(self):
 		#2 frames at 30fps (~66ms)
 		self.debounce = 2
@@ -36,6 +41,10 @@ class BtnInput:
 			self.state.append(state)
 			self.cooldown.append(cooldown)
 
+	"""
+	[get_playable_pitches self] returns the set of playable pitches that
+	this input maps to
+	"""
 	def get_playable_pitches(self):
 		ans = set()
 		for port_mapping in self.port_mappings:
@@ -43,6 +52,10 @@ class BtnInput:
 				ans.add(pitch)
 		return ans
 
+	"""
+	[poll self] polls the inputs for updates and updates the state.
+	This needs to be called every game frame.
+	"""
 	def poll(self):
 		for mcp,mappings,state,cooldown in \
 		zip(self.mcps, self.port_mappings, self.state, self.cooldown):
@@ -57,17 +70,26 @@ class BtnInput:
 					#Not because we're active low
 					self.updates[pitch] = not mcp.input(pin)
 
+	#[has_updates self] returns whether this object has any updates
 	def has_updates(self):
 		return len(self.updates) > 1
 
-	#updates {pitch : is_pressed}
+	#[get_updates self] returns a dictionary mapping pitches to new state
+	#(True = Active, False = Inactive) indicating updates since the
+	#previous call to [get_updates]
 	def get_updates(self):
 		updates = self.updates
 		self.updates = {}
 		return updates
 
+#An input class that provides input through the keyboard
 class KeyboardInput:
+	"""
+	[__init__] saves the bindings from keys to pitches and initialises
+	the state of the input
+	"""
 	def __init__(self):
+		#Bindings from keys to pitches
 		self.port_mappings = {'G3': pygame.K_a, 'G#3': pygame.K_w,\
 		'A3': pygame.K_s, 'A#3': pygame.K_e, 'B3': pygame.K_d, \
 		'C4': pygame.K_f, 'C#4': pygame.K_t, \
@@ -78,12 +100,20 @@ class KeyboardInput:
 		self.state = pygame.key.get_pressed()
 		self.updates = {}
 
+	"""
+	[get_playable_pitches self] returns the set of playable pitches that
+	this input maps to
+	"""
 	def get_playable_pitches(self):
 		ans = set()
 		for pitch,_ in self.port_mappings.items():
 			ans.add(pitch)
 		return ans
 
+	"""
+	[poll self] polls the inputs for updates and updates the state.
+	This needs to be called every game frame.
+	"""
 	def poll(self):
 		new_state = pygame.key.get_pressed()
 		for pitch,key in self.port_mappings.items():
@@ -91,9 +121,13 @@ class KeyboardInput:
 				self.updates[pitch] = new_state[key]
 		self.state = new_state
 
+	#[has_updates self] returns whether this object has any updates
 	def has_updates(self):
 		return len(self.updates) > 1
 
+	#[get_updates self] returns a dictionary mapping pitches to new state
+	#(True = Active, False = Inactive) indicating updates since the
+	#previous call to [get_updates]
 	def get_updates(self):
 		updates = self.updates
 		self.updates = {}

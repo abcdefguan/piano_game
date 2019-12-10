@@ -6,19 +6,34 @@ import os
 def float_eq(f1, f2):
 	return abs(f1 - f2) <= 1e-4
 
+#This class represents a musical bar
 class Bar:
+	"""
+	[__init__ self bpm timing treble bass] generates a new Bar
+	with [bpm] beats per minute, [timing] as a tuple of the top and bottom
+	timings, [treble] indicating the notes in the treble clef and [bass]
+	indicating the notes in the bass clef.
+	We use a tuple of a list of notes in plaintext, followed by the duration
+	to represent a note (ie (['C4', 'E4'], 2))
+	"""
 	def __init__(self, bpm, timing, treble, bass):
 		self.bpm = bpm
 		self.timing = timing
 		self.treble = treble
 		self.bass = bass
 
+	#[get_length self] returns the length of this bar in crotchets
 	def get_length(self):
 		ans = 0
 		for (_, dur) in self.treble:
 			ans += dur
 		return ans
 
+	"""
+	[note_at_time self time treble] returns the index of the note at [time] crotchets
+	within the bar. It returns the index of the note in the treble clef
+	if [treble] is True and bass clef otherwise.
+	"""
 	def note_at_time(self, time, treble):
 		accl = 0
 		if treble:
@@ -31,6 +46,12 @@ class Bar:
 				return idx
 		return len(notes) - 1
 
+	"""
+	[end_duration idx treble] returns the time at which the note at [idx]
+	in the clef indicated by [treble] (Treble Clef if true, Bass Clef otherwise)
+	is completed. The time is given in number of crotchets from the start
+	of the bar.
+	"""
 	def end_duration(self, idx, treble):
 		accl = 0
 		if treble:
@@ -41,19 +62,44 @@ class Bar:
 			accl += notes[i][1]
 		return accl
 
+	"""
+	[get_treble self] returns the list of notes that make up the
+	treble clef of this bar.
+	"""
 	def get_treble(self):
 		return self.treble
 
+	"""
+	[get_bass self] returns the list of notes that make up the
+	bass clef of this bar.
+	"""
 	def get_bass(self):
 		return self.bass
 
+	"""
+	[get_bpm self] returns the beats per minute (crotchet = 1 beat) of
+	this bar.
+	"""
 	def get_bpm(self):
 		return self.bpm
 
+	"""
+	[get_timing self] returns the timing of this bar as a tuple
+	with the 0th element representing the top number and the 1st element
+	representing the bottom number.
+	"""
 	def get_timing(self):
 		return self.timing
 
+#This class represents a musical score
 class Score:
+	"""
+	[__init__ self file_name note_imgs player] attempts to load the score
+	file at [file_name]. [note_imgs] and [player] are used to ensure that
+	all notes in the score are indeed playable and able to be rendered.
+	Any issues that occur will be printed to stdout and will contain
+	the line and bar number of the error.
+	"""
 	def __init__(self, file_name, note_imgs, player):
 		self.note_imgs = note_imgs
 		self.player = player
@@ -148,16 +194,25 @@ class Score:
 		#	self.valid = False
 		#	self.reason = "An exception occurred while parsing the file"
 
+
+	#[get_metadata self] returns the metadata of this score as a dictionary
 	def get_metadata(self):
 		return {"name" : self.name}
 
+	#[get_total_bars self] returns the number of bars in this score
 	def get_total_bars(self):
 		return self.num_bars
 
+	#[get_bar self bar] returns the bar at index [bar] of this score
 	def get_bar(self, bar):
 		return self.bars[bar]
 
+#This class renders all of the notes on the score onto the screen.
+#It also provides playback control and is able to optionally play notes
+#based on the playback
 class RenderedScore:
+	#[__init__ self note_imgs player score] generates a new RenderedScore
+	#using the images from [note_imgs], audio player [player] and score [score]
 	def __init__(self, note_imgs, player, score = None):
 		self.colors = {"yellow": (244, 247, 35), "black": (0,0,0), \
 		"dark_blue": (47, 29, 245)}
@@ -173,9 +228,13 @@ class RenderedScore:
 		else:
 			self.replace_score(score)
 
+	#[bind_screen self parent_screen] is required by the parent Screen. 
+	#It allows interaction with the parent Screen.
 	def bind_screen(self, parent_screen):
 		self.parent_screen = parent_screen
 
+	#[replace_score self new_score] replaces the current score
+	#with a new one and draws the new score onto the stage
 	def replace_score(self, new_score):
 		self.score = new_score
 		#Advance at 1.0 pace
@@ -253,6 +312,9 @@ class RenderedScore:
 		#Grab new timings
 		self.refresh_timings()
 
+	#[refresh_timings self] refreshes all of the bars, timings and bpm
+	#displayed on the stage based on the current timing (self.curr_timing) 
+	#and current bar index (self.curr_bar_idx)
 	def refresh_timings(self):
 		self.stage.clear_tmp_elts()
 		self.bar_numbers = []
@@ -262,6 +324,7 @@ class RenderedScore:
 		self.bars = self.get_bars()
 		prev_timing = (None, None)
 		prev_pace = None
+		#Render all the bars
 		for bar_idx, bar in zip(range(len(self.bars)), self.bars):
 			bar_timings = []
 			top_timing, bottom_timing = bar.get_timing()
@@ -299,6 +362,8 @@ class RenderedScore:
 			self.stage.add_tmp_elt(text)
 		self.refresh_notes()
 
+	#[refresh_notes self] updates the position of all the notes on the screen
+	#based on self.curr_timing and self.curr_bar_idx
 	def refresh_notes(self):
 		#Draw the notes
 		#Stored by bar in same order as self.bars, then list of pitches for
@@ -321,6 +386,13 @@ class RenderedScore:
 					for component in pitch:
 						self.stage.add_tmp_elt(component)
 
+	"""
+	[add_notes_from_clef self bar_idx notes treble append_to] appends [notes]
+	from the bar at [bar_idx] relative to self.curr_bar_idx from the clef
+	indicated by [treble] (Treble if True, Bass if False) to the list
+	[append_to]. Note that this takes into account note flips and chords
+	where all notes point the same direction.
+	"""
 	def add_notes_from_clef(self, bar_idx, notes, treble, append_to):
 		curr_dur = 0.0
 		for pitches, duration in notes:
@@ -340,6 +412,8 @@ class RenderedScore:
 			append_to.append(note_imgs)
 			curr_dur += duration
 
+	#[pace_to_str self pace] converts [pace] to a string based on the 
+	#beats per minute
 	def pace_to_str(self, pace):
 		pace_text = [(24, "Larghissimo"), (40, "Grave"), (60, "Largo"), \
 		(76, "Adagio"), (108, "Andante"), (120, "Moderato"), \
@@ -351,6 +425,10 @@ class RenderedScore:
 				break
 		return "{} {}".format(pace_name, int(pace))
 
+	"""
+	[get_bars self] gets the current bars based on self.curr_bar_idx and
+	self.num_bars
+	"""
 	def get_bars(self):
 		bars = []
 		bar_idx = self.curr_bar_idx - (self.curr_bar_idx % self.num_bars)
@@ -359,11 +437,20 @@ class RenderedScore:
 			bars.append(self.score.get_bar(i))
 		return bars
 
+	"""
+	[get_bar_start_x self bar_idx] gets the x position where the bar with
+	relative index [bar_idx] (0 to self.num_bars - 1) should start
+	"""
 	def get_bar_start_x(self, bar_idx):
 		return self.start_left_margin + \
 		float(self.right_margin - self.start_left_margin) * bar_idx \
 		/ self.num_bars
 
+	"""
+	[get_note_horizontal_pos self bar_idx duration] gets the x position 
+	of the note relative to the start of the bar based on the note [duration]
+	and the relative index of the bar [bar_idx] (0 to self.num_bars - 1)
+	"""
 	def get_note_horizontal_pos(self, bar_idx, duration):
 		bar_pos = bar_idx % self.num_bars
 		start_x = self.get_bar_start_x(bar_pos)
@@ -376,6 +463,11 @@ class RenderedScore:
 		bar_duration = self.bars[bar_pos].get_length()
 		return start_x + float(end_x - start_x) * duration / bar_duration
 
+	"""
+	[get_adj self treble] gets the y axis adjustment needed based on the
+	pitch of the note for the given clef based on [treble].
+	[treble] indicates the Treble Clef if True and Bass Clef if False.
+	"""
 	def get_adj(self, treble):
 		clef_adj = {'-' : self.treble_increment * 2}
 		if treble:
@@ -396,6 +488,19 @@ class RenderedScore:
 			adj += float(self.treble_increment) / 2
 		return clef_adj
 
+	"""
+	[get_note_images self pitch duration x_pos treble force_flip]
+	returns a list of components needed to draw a particular pitch.
+	[pitch] refers to the pitch we're currently considering
+	[duration] refers to the duration of the pitch that we're considering
+	[x_pos] refers to the computed horizontal position of this pitch
+	[duration] refers to the length of the note in crotchets
+	[treble] refers to whether this note should be rendered in the treble
+	clef (Treble if True, Bass if False)
+	[force_flip is used to force the note to be flipped if it appears in a chord.
+	Note that this can innately handle sharps, handle chords and draw
+	extra lines if a note is too high or too low.
+	"""
 	def get_note_images(self, pitch, duration, x_pos, treble, force_flip = False):
 		#May have to return additional lines to draw certain notes
 		images = []
@@ -481,6 +586,11 @@ class RenderedScore:
 			from_surf = True))
 		return images
 
+	"""
+	[pitch_adj_flip self pitch treble] adjusts a [pitch] for y position and
+	determines if the pitch should be flipped based on its y position. [treble]
+	is True if the note is in the Treble Clef and False otherwise.
+	"""
 	def pitch_adj_flip(self, pitch, treble):
 		#Remove any sharps
 		pitch = pitch.replace("#", "")
@@ -498,10 +608,16 @@ class RenderedScore:
 			is_flipped = True
 		return (adj, pitch_adj, is_flipped)
 
+	#[adjust_pace self new_pace] changes the relative pace that we're moving
+	#along the song. 1.0 is the normal pace and other paces
+	#would go faster or go slower. 0.0 is used to pause
 	def adjust_pace(self, new_pace):
 		#1.0 for normal, -<sth> for rewind, +<sth> for ffwd, 0 for pause
 		self.advance_rate = new_pace
 
+	#[advance_time self fps] steps through one frame at [fps] frames
+	#per second. This causes the playback to advance according to
+	#[self.advance_rate]
 	def advance_time(self, fps):
 		#Check if completed
 		if self.curr_bar_idx >= self.score.get_total_bars():
@@ -594,10 +710,15 @@ class RenderedScore:
 				self.change_timing_note_color(self.curr_timing, \
 					self.colors["dark_blue"], False)
 
-	#Called after all the notes and bars have changed
+	#[on_note_stop self pitches treble] is called when we transition
+	#between bars or between notes. [pitches] refer to the pitches which
+	#are stopped and [treble] refers to the clef (Treble if True, Bass if False)
 	def on_note_stop(self, pitches, treble):
 		return True
 
+	#[get_curr_pitches self treble] gets the pitches based on self.curr_bar_idx
+	#and self.curr_timing that should be played now based on the clef indicated
+	#by [treble] (Treble if True, Bass if False)
 	def get_curr_pitches(self, treble):
 		curr_bar = self.score.get_bar(self.curr_bar_idx)
 		if treble:
@@ -607,6 +728,7 @@ class RenderedScore:
 		pitches,_ = notes[curr_bar.note_at_time(self.curr_timing, treble)]
 		return pitches
 
+	#[jump_to_next_timing self] is used to jump to the next note
 	def jump_to_next_timing(self):
 		#print("Changing color")
 		bar_idx = self.curr_bar_idx % self.num_bars
@@ -619,9 +741,15 @@ class RenderedScore:
 		self.curr_timing += timing_jump
 		self.on_early_note_release(timing_jump)
 
+	#[on_early_note_release self timing_jump] is triggered when a note is
+	#released early by the player. [timing_jump] is the amount of crotchets
+	#missed when we jump to the next note.
 	def on_early_note_release(self, timing_jump):
 		return True
 
+	#[change_timing_note_color self timing new_color treble] changes the color
+	#of the note at [timing] to [new_color] with clef specified by [treble]
+	#(Treble if True, Bass if False)
 	def change_timing_note_color(self, timing, new_color, treble):
 		#print("Changing color")
 		bar_idx = self.curr_bar_idx % self.num_bars
@@ -637,6 +765,8 @@ class RenderedScore:
 			for pitch in self.bass_note_imgs[bar_idx][bass_idx]:
 				pitch[-1].change_color(new_color)
 
+	#[change_curr_pitch_color] changes the specified [pitches] to [new_color]
+	#at the current timing defined by self.curr_bar_idx and self.curr_timing
 	def change_curr_pitch_color(self, pitches, new_color):
 		bar_idx = self.curr_bar_idx % self.num_bars
 		curr_bar = self.score.get_bar(self.curr_bar_idx)
@@ -654,21 +784,27 @@ class RenderedScore:
 			if pitch in pitches:
 				imgs[-1].change_color(new_color)
 
+	#[handle_click self pos] handles a click event at position [pos]
 	def handle_click(self, pos):
 		self.stage.handle_click(pos)
 
+	#[draw self screen] draws the elements in the score onto [screen]
 	def draw(self, screen):
-		#TODO: Move stage elements to correct position, update stage state
 		self.stage.draw(screen)
 
+	#[has_quit self] queries whether this score has quitted
 	def has_quit(self):
 		return self.curr_bar_idx >= self.score.get_total_bars()
 
-#class Training
-
+#This class loads all the images from file then caches them in memory
+#and returns the required image surface when requested.
 class NoteImgCache:
+	#[__init__ self] loads all the images from the "img/" folder
+	#and caches them in memory
 	def __init__(self):
-
+		#[to_flipped_arr path] generates a list including the base note name
+		#from [path] as the _flip and _rest note names that add _flip and _rest
+		#before the extension respectively
 		def to_flipped_arr(path):
 			res = [path]
 			split_idx = path.find('.', 1)
@@ -678,6 +814,8 @@ class NoteImgCache:
 			res.append(file_name + "_rest" + extension)
 			return res
 
+		#[to_surface path] loads the image at path into a surface and
+		#transforms it according to the transformations in transform_path
 		def to_surface(path):
 			img = pygame.image.load(path)
 			#Change the size of note if required to fit the divisions
@@ -725,9 +863,13 @@ class NoteImgCache:
 		self.notes = {dur: [to_surface(p) for p in \
 		to_flipped_arr(base_path + path)] for (dur,path) in note_path.items()}
 
+	#[has_note self dur] returns whether we have a corresponding note image
+	#for a note with duration [dur]
 	def has_note(self, dur):
 		return round(dur, 3) in self.notes
 
+	#[get_note self dur rest flip] returns a note surface based on the
+	#[dur] of the note and whether it is a [flip] note or a [rest] note.
 	def get_note(self, dur, rest = False, flip = False):
 		fail = [None, None, None]
 		if rest:
@@ -737,7 +879,13 @@ class NoteImgCache:
 		else:
 			return self.notes.get(round(dur, 3), fail)[0]
 
+#This class is in charge of caching note wav files as well
+#as playing the relevant notes
 class AudioPlayer:
+	"""
+	Caches all the notes from the "sound/" directory that end in
+	.wav and adds them to the recognised pitches
+	"""
 	def __init__(self):
 		self.note_wav = {}
 		self.playing = {}
@@ -750,14 +898,20 @@ class AudioPlayer:
 				wav_obj = sa.WaveObject.from_wave_file(sound_dir + "/" + file_name)
 				self.note_wav[note_name] = wav_obj
 
+	#Stops all notes on deletion (garbage collection)
 	def __del__(self):
 		sa.stop_all()
 
+	#[has_note self pitch] returns whether [pitch] is recognised by this
+	#player
 	def has_note(self, pitch):
 		if pitch == '-':
 			return True
 		return pitch in self.note_wav
 
+	#[play_note self pitches] plays each pitch in [pitches]. This
+	#stops and restarts a pitch that is already playing
+	#Example: player.play_note(['C4', 'E4', 'G4'])
 	def play_note(self, pitches):
 		for pitch in pitches:
 			if pitch in self.playing:
@@ -765,15 +919,19 @@ class AudioPlayer:
 			if pitch in self.note_wav:
 				self.playing[pitch] = self.note_wav[pitch].play()
 
+	#[stop_note self pitches] stops each pitch in [pitches]
+	#Example: player.stop_note(['C4', 'E4', 'G4'])
 	def stop_note(self, pitches):
 		for pitch in pitches:
 			if pitch in self.playing:
 				self.playing.pop(pitch).stop()
 
+	#[stop_all self] stops all currently playing pitches
 	def stop_all(self):
 		sa.stop_all()
 		self.playing = {}
 
+	#[finish self] should be called when the audioplayer is no longer needed
 	def finish(self):
 		sa.stop_all()
 		self.playing = {}

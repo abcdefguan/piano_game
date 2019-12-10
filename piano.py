@@ -1,6 +1,8 @@
 import pygame
 from components import Btn, ImageBtn, Text, Line, Image, Stage
 
+#This enables the user to play the game like a normal piano
+#This simply implements the UI elem required by components/Screen
 class PianoMode:
 	def __init__(self, player, key_input):
 		self.stage = Stage()

@@ -4,6 +4,9 @@ from training import TrainingScore
 from game import GameScore
 from assign_score import AssignScore
 
+#This is used to select a score to be played in either training mode or game
+#mode. This implements a UI element required by components/Screen.
+#Please refer to components/Screen for documentation on each of the methods.
 class ScoreSelect:
 	def __init__(self, note_img_cache, player, key_input, scores \
 		, fps, train_mode = True):

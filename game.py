@@ -2,7 +2,16 @@ import pygame
 from components import Btn, ImageBtn, Text, Line, Image, Stage
 from music import RenderedScore
 
+#This class plays out the game mode
 class GameScore(RenderedScore):
+	"""
+	[__init__ self note_imgs player key_input score] creates a new
+	game mode using the specified
+	[note_imgs] a NoteImgCache object
+	[player] an AudioPlayer object
+	[key_input] either a KeyboardInput / BtnInput
+	[score] a Score object
+	"""
 	def __init__(self, note_imgs, player, key_input, score = None):
 		super().__init__(note_imgs, player, score)
 		#Leave previous notes as is
@@ -34,6 +43,8 @@ class GameScore(RenderedScore):
 			self.on_exit_btn_click)
 		self.stage.add_btn(self.exit_btn)
 
+	#[on_exit_btn_click self btn pos] is called when the exit
+	#button is called
 	def on_exit_btn_click(self, btn, pos):
 		self.quit = True
 		info = self.parent_screen.get_info()
@@ -43,12 +54,18 @@ class GameScore(RenderedScore):
 			if elem in info:
 				info.pop(elem)
 
+	#[on_early_note_release self timing_jump] is triggered when a note is
+	#released early by the player. [timing_jump] is the amount of crotchets
+	#missed when we jump to the next note.
 	def on_early_note_release(self, timing_jump):
 		if timing_jump >= self.early_tolerance:
 			#print("Early Note!!")
 			self.early_notes += 1
 			#Stop all non playable notes
 
+	#[on_note_stop self pitches treble] is called when we transition
+	#between bars or between notes. [pitches] refer to the pitches which
+	#are stopped and [treble] refers to the clef (Treble if True, Bass if False)
 	def on_note_stop(self, pitches, treble):
 		#Change to waiting state
 		self.fsm_state = self.WAITING
@@ -61,6 +78,9 @@ class GameScore(RenderedScore):
 			if pitch not in self.playable_pitches:
 				self.player.stop_note([pitch])
 
+	#[advance_time self fps] steps through one frame at [fps] frames
+	#per second. This causes the playback to advance according to
+	#[self.advance_rate]
 	def advance_time(self, fps):
 		self.frames_used += 1
 		#Consume updates from input
@@ -129,6 +149,7 @@ class GameScore(RenderedScore):
 			info["wrong_notes"] = self.wrong_notes
 			info["frames_used"] = self.frames_used
 
+	#[has_quit self] queries whether this score has quitted
 	def has_quit(self):
 		if super().has_quit():
 			return True

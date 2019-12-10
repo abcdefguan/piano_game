@@ -2,7 +2,16 @@ import pygame
 from components import Btn, ImageBtn, Text, Line, Image, Stage
 from music import RenderedScore
 
+#This class implements the training mode
 class TrainingScore(RenderedScore):
+	"""
+	[__init__ self note_imgs player key_input score] creates a new
+	training score with specified
+	[note_imgs] a NoteImgCache
+	[player] an AudioPlayer
+	[key_input] an Input (KeyboardInput / BtnInput)
+	[score] a Score
+	"""
 	def __init__(self, note_imgs, player, key_input, score = None):
 		super().__init__(note_imgs, player, score)
 		self.colors['green'] = (14, 230, 71)
@@ -32,6 +41,10 @@ class TrainingScore(RenderedScore):
 		self.stage.add_btn(self.ffwd_btn)
 		self.stage.add_elt(self.pace_txt)
 
+	"""
+	[on_play_btn_click self btn pos] is called when the play/pause
+	button is clicked
+	"""
 	def on_play_btn_click(self, btn, pos):
 		if not self.paused:
 			self.paused = True
@@ -45,15 +58,31 @@ class TrainingScore(RenderedScore):
 			self.advance_rate = self.playback_rates[self.playback_rate_idx]
 			self.play_btn.change_img('./img/pause.png', dimen = (20, 20))
 
+	"""
+	[on_exit_btn_click self btn pos] is called when the exit button is clicked
+	"""
 	def on_exit_btn_click(self, btn, pos):
 		self.quit = True
 
+	"""
+	[on_ffwd_btn_click self btn pos] is called when the faster
+	button is clicked
+	"""
 	def on_ffwd_btn_click(self, btn, pos):
 		self.adjust_pace(1)
 
+	"""
+	[on_slow_btn_click self btn pos] is called when the slower button
+	is clicked
+	"""
 	def on_slow_btn_click(self, btn, pos):
 		self.adjust_pace(-1)
 
+	"""
+	[adjust_pace self adjust] adjusts the pace based on the defined paces
+	and ensures that the pace never goes too low. It adjusts the index of the
+	defined paces list by [adjust]
+	"""
 	def adjust_pace(self, adjust):
 		self.playback_rate_idx += adjust
 		if self.playback_rate_idx < 0:
@@ -65,12 +94,18 @@ class TrainingScore(RenderedScore):
 		self.pace_txt.text = "{}x Pace" \
 		.format(self.playback_rates[self.playback_rate_idx])
 
+	#[on_note_stop self pitches treble] is called when we transition
+	#between bars or between notes. [pitches] refer to the pitches which
+	#are stopped and [treble] refers to the clef (Treble if True, Bass if False)
 	def on_note_stop(self, pitches, treble):
 		#Discard all played pitches
 		for pitch in pitches:
 			if pitch in self.played_pitches:
 				self.played_pitches.remove(pitch)
 
+	#[advance_time self fps] steps through one frame at [fps] frames
+	#per second. This causes the playback to advance according to
+	#[self.advance_rate]
 	def advance_time(self, fps):
 		if not self.paused:
 			super().advance_time(fps)
@@ -105,6 +140,7 @@ class TrainingScore(RenderedScore):
 		self.change_curr_pitch_color(corr_pitches, self.colors['green'])
 		self.change_curr_pitch_color(wrong_pitches, self.colors['red'])
 
+	#[has_quit self] queries whether this score has quitted
 	def has_quit(self):
 		if super().has_quit():
 			return True

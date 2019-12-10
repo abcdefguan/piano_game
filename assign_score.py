@@ -1,6 +1,9 @@
 import pygame
 from components import Btn, ImageBtn, Text, Line, Image, Stage
 
+#This is used to render the performance information after completing
+#game mode. This implements a UI element required by components/Screen.
+#Please refer to components/Screen for documentation on each of the methods.
 class AssignScore:
 	def __init__(self, wrong_notes, early_notes, timing, score, fps):
 		#Various settings

@@ -7,6 +7,9 @@ from training import TrainingScore
 from game import GameScore
 from input import KeyboardInput, BtnInput
 
+#This is used to render the main UI screen that is shown at the start.
+#This implements a UI element required by components/Screen.
+#Please refer to components/Screen for documentation on each of the methods.
 class MainUI:
 	def __init__(self, note_img, player, key_input, scores, fps):
 		self.fps = fps
